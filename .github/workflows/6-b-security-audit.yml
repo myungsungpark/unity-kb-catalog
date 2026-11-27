@@ -5,7 +5,10 @@ on:
   pull_request:
     paths:
       - scripts/audit_production_environment.py
+      - scripts/verify_trust_anchor.py
       - tests/test_production_security_audit.py
+      - tests/test_trust_anchor.py
+      - .github/workflows/publish-signed-catalog.yml
       - .github/workflows/6-b-security-audit.yml
   workflow_dispatch:
 
@@ -26,11 +29,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 -m pip install -r requirements-release.txt
           python3 -m unittest discover -s tests -p 'test_production_security_audit.py' -v 2>&1 | tee audit-tests.log
+          python3 -m unittest discover -s tests -p 'test_trust_anchor.py' -v 2>&1 | tee key-tests.log
           grep -Eq '^Ran 8 tests in ' audit-tests.log
           grep -Fxq OK audit-tests.log
+          grep -Eq '^Ran 5 tests in ' key-tests.log
+          grep -Fxq OK key-tests.log
           ! grep -Eq 'skipped=[1-9]|FAILED|ERROR' audit-tests.log
-          echo "6-B policy simulation PASS: 8/8, isolated run ${{ matrix.pass_id }}" >> "$GITHUB_STEP_SUMMARY"
+          ! grep -Eq 'skipped=[1-9]|FAILED|ERROR' key-tests.log
+          echo "6-B policy simulation PASS: 13/13, isolated run ${{ matrix.pass_id }}" >> "$GITHUB_STEP_SUMMARY"
           echo "Does not certify live GitHub environment or real signing secrets." >> "$GITHUB_STEP_SUMMARY"
 
   gate:
