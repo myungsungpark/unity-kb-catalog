@@ -59,6 +59,8 @@ def verify_assets(catalog_bytes, manifest_bytes, signature_bytes, public_key, *,
         raise ValueError("size mismatch")
     if catalog.get("schema_version") != 1 or catalog.get("catalog_status") != "released":
         raise ValueError("catalog is not released")
+    if manifest.get("release_tag") != "catalog-v" + str(catalog.get("catalog_version")):
+        raise ValueError("signed Release tag mismatch")
     if manifest.get("catalog_version") != catalog.get("catalog_version"):
         raise ValueError("catalog version mismatch")
     if not isinstance(catalog.get("articles"), list) or not catalog["articles"]:

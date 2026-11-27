@@ -35,6 +35,7 @@ def build(catalog_path, output, key_pem, channel="stable", min_analyzer_version=
     manifest = {
         "format_version": 1,
         "catalog_version": catalog["catalog_version"],
+        "release_tag": "catalog-v" + catalog["catalog_version"],
         "schema_version": 1,
         "channel": channel,
         "min_analyzer_version": min_analyzer_version,
