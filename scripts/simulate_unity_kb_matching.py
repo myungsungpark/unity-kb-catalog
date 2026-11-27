@@ -43,7 +43,7 @@ def evaluate(article, incident, *, simulate=False):
     Analyzer reports or production decisions.
     """
     kb = article.get("kb_id", "UNKNOWN")
-    if not simulate or article.get("matching", {}).get("enabled") is not True and not simulate:
+    if not simulate:
         return result(kb, "NOT_EVALUATED", ["Matching is disabled in the Catalog"])
 
     # Simulation is explicit; it NEVER changes matching.enabled in source files.
