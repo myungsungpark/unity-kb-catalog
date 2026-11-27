@@ -86,16 +86,23 @@ jobs:
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then echo "tag already exists"; exit 1; fi
           echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
           python scripts/validate_catalog.py
+          PROTECTED="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.protected')"
+          if [ "$PROTECTED" != "true" ]; then
+            echo "ERROR: main is not protected; production publication forbidden"
+            exit 1
+          fi
           python scripts/prepare_release.py --version "$VERSION" --out prepared
       - name: Read signing material from protected environment
         shell: bash
         env:
           SIGNING_KEY: ${{ secrets.CATALOG_ED25519_PRIVATE_PEM }}
           TRUSTED_KEY: ${{ secrets.CATALOG_ED25519_PUBLIC_PEM }}
+          APPROVED_FINGERPRINT: ${{ vars.CATALOG_ED25519_TRUST_SHA256 }}
         run: |
           set -euo pipefail
           test -n "$SIGNING_KEY"
           test -n "$TRUSTED_KEY"
+          test -n "$APPROVED_FINGERPRINT"
           printf '%s\n' "$SIGNING_KEY" > "$RUNNER_TEMP/catalog-private.pem"
           printf '%s\n' "$TRUSTED_KEY" > "$RUNNER_TEMP/catalog-public.pem"
           chmod 600 "$RUNNER_TEMP/catalog-private.pem"
@@ -109,6 +116,7 @@ jobs:
           expected=configured.public_bytes(serialization.Encoding.PEM,serialization.PublicFormat.SubjectPublicKeyInfo)
           if actual != expected: raise SystemExit('signer and trusted verification key mismatch')
           PY
+          python scripts/verify_trust_anchor.py --public-key "$RUNNER_TEMP/catalog-public.pem" --expected-sha256 "$APPROVED_FINGERPRINT"
       - name: Sign and verify the exact release assets
         shell: bash
         env:

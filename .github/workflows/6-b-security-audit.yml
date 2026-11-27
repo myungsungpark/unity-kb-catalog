@@ -1,0 +1,53 @@
+name: 6-B Production Security Policy Regression
+on:
+  push:
+    branches: [feature/6-b-production-security-gates]
+  pull_request:
+    paths:
+      - scripts/audit_production_environment.py
+      - scripts/verify_trust_anchor.py
+      - tests/test_production_security_audit.py
+      - tests/test_trust_anchor.py
+      - .github/workflows/publish-signed-catalog.yml
+      - .github/workflows/6-b-security-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-policy:
+    name: 6-B security policy pass ${{ matrix.pass_id }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pass_id: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run offline negative security policy tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install -r requirements-release.txt
+          python3 -m unittest discover -s tests -p 'test_production_security_audit.py' -v 2>&1 | tee audit-tests.log
+          python3 -m unittest discover -s tests -p 'test_trust_anchor.py' -v 2>&1 | tee key-tests.log
+          grep -Eq '^Ran 8 tests in ' audit-tests.log
+          grep -Fxq OK audit-tests.log
+          grep -Eq '^Ran 5 tests in ' key-tests.log
+          grep -Fxq OK key-tests.log
+          ! grep -Eq 'skipped=[1-9]|FAILED|ERROR' audit-tests.log
+          ! grep -Eq 'skipped=[1-9]|FAILED|ERROR' key-tests.log
+          echo "6-B policy simulation PASS: 13/13, isolated run ${{ matrix.pass_id }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Does not certify live GitHub environment or real signing secrets." >> "$GITHUB_STEP_SUMMARY"
+
+  gate:
+    name: Gate - all three 6-B simulations PASS
+    needs: [security-policy]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all three jobs
+        env:
+          RESULT: ${{ needs.security-policy.result }}
+        run: test "$RESULT" = "success"
