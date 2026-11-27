@@ -74,3 +74,47 @@ Do not merge PR #8 or #9 for publication, and never execute
 - three independent signed-release verification passes are evidenced.
 
 This is intentionally separate from CI success and from code build status.
+
+## 6-B-1 observed GitHub repository state (2026-11-27)
+
+API `GET /repos/myungsungpark/unity-kb-catalog/branches/main` reported
+`protected: false` at commit
+`53619900e79d18e8fe5c7de80c45b5745678667d`. Rulesets collection
+reported `[]`. Protected branch details returned HTTP 403 to the connector.
+Environment and secret metadata cannot be queried with this integration.
+Therefore the operational 6-B-1 approval decision is **FAIL / HOLD**.
+
+### Required administrator action and evidence
+
+1. Configure `main` protection under Settings → Branches or Rulesets,
+   with mandatory review(s), required CI status checks, no force push/delete.
+   Re-query the branch API and confirm `protected: true`.
+2. Under Settings → Environments create `catalog-production`, restrict
+   deployments to `main` or protected branches, enable Required Reviewers
+   and Prevent self-review. Capture non-secret screenshots/JSON of controls.
+3. Set environment secrets `CATALOG_ED25519_PRIVATE_PEM` and
+   `CATALOG_ED25519_PUBLIC_PEM` using an approved key ceremony.
+   Do **not** paste secret contents into chats, issues, PRs, Actions summaries
+   or screenshots.
+4. Separately approve the SHA-256 **of the raw 32-byte Ed25519 public key**
+   and register it as environment variable
+   `CATALOG_ED25519_TRUST_SHA256` (lowercase 64-character hexadecimal).
+   The same raw key must be pinned in the signed Analyzer build from an
+   out-of-band verified source. A matching fingerprint proves key identity,
+   not the custody/security of the private key.
+5. Execute `scripts/verify_trust_anchor.py` with the approved PEM public
+   key and approved fingerprint in an authorized secure terminal. It must
+   output `APPROVED TRUST ANCHOR MATCH: PASS`.
+6. Re-run the audit with read-only administrative token, independently
+   verify reviewer identity and `main` protection; archive audit timestamps
+   and immutable evidence (without secrets). Only a subsequent explicit
+   security approval may release the production publication hold.
+
+### Additional hard stop added to publisher
+
+`publish-signed-catalog.yml` now queries the `main` branch API and
+stops when `protected` is not `true`. It also requires
+`CATALOG_ED25519_TRUST_SHA256` and compares the expected fingerprint
+against the public signing key before packaging. It cannot independently
+prove that environment reviewers are correctly configured, and therefore
+manual administrator verification remains a mandatory prerequisite.
