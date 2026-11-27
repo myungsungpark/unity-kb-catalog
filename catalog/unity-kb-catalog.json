@@ -59,8 +59,7 @@
         ],
         "excluded_event_types": [
           "HOST_KERNEL_PANIC"
-        ],
-        "match_status": "NOT_EVALUATED"
+        ]
       }
     },
     
@@ -124,8 +123,7 @@
     ],
     "excluded_event_types": [
       "HOST_KERNEL_PANIC"
-    ],
-    "match_status": "NOT_EVALUATED"
+    ]
   }
 },
 
@@ -184,8 +182,7 @@
     ],
     "excluded_event_types": [
       "HOST_KERNEL_PANIC"
-    ],
-    "match_status": "NOT_EVALUATED"
+    ]
   }
 }
   ]
