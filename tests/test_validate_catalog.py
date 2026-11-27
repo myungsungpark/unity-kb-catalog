@@ -92,5 +92,68 @@ class TestCatalogValidator(unittest.TestCase):
         self.assertIn("VALIDATION PASSED", log)
 
 
+    def test_f01_empty_inclusive_range_rejected(self):
+        data = copy.deepcopy(CATALOG)
+        rule = next(x for x in data["articles"] if x["kb_id"] == "000200921")["oe_rules"][0]
+        rule["max_version"] = rule["min_version"]
+        rule["max_inclusive"] = False
+        code, log = run_validator(data)
+        self.assertNotEqual(code, 0, log)
+        self.assertIn("empty OE range", log)
+
+    def test_f02_unknown_oe_rule_type_list_rejected_cleanly(self):
+        data = copy.deepcopy(CATALOG)
+        data["articles"][0]["oe_rules"][0]["type"] = ["exact"]
+        code, log = run_validator(data)
+        self.assertNotEqual(code, 0, log)
+        self.assertIn("unsupported type", log)
+        self.assertNotIn("Traceback", log)
+
+    def test_f03_verification_status_list_rejected_cleanly(self):
+        data = copy.deepcopy(CATALOG)
+        data["articles"][0]["verification_status"] = ["verified"]
+        code, log = run_validator(data)
+        self.assertNotEqual(code, 0, log)
+        self.assertIn("invalid verification_status", log)
+        self.assertNotIn("Traceback", log)
+
+    def test_f04_invalid_date_compact_format_rejected(self):
+        data = copy.deepcopy(CATALOG)
+        data["articles"][0]["last_checked"] = "20261127"
+        code, log = run_validator(data)
+        self.assertNotEqual(code, 0, log)
+        self.assertIn("invalid last_checked", log)
+
+    def test_f05_boolean_schema_version_rejected(self):
+        data = copy.deepcopy(CATALOG)
+        data["schema_version"] = True
+        code, log = run_validator(data)
+        self.assertNotEqual(code, 0, log)
+        self.assertIn("Unsupported schema version", log)
+
+    def test_f06_empty_catalog_versions_rejected(self):
+        data = copy.deepcopy(CATALOG)
+        manifest = copy.deepcopy(MANIFEST)
+        data["catalog_version"] = ""
+        manifest["catalog_version"] = ""
+        code, log = run_validator(data, manifest)
+        self.assertNotEqual(code, 0, log)
+        self.assertIn("invalid catalog_version", log)
+
+    def test_f07_missing_required_field_rejected(self):
+        data = copy.deepcopy(CATALOG)
+        data["articles"][0].pop("category")
+        code, log = run_validator(data)
+        self.assertNotEqual(code, 0, log)
+        self.assertIn("missing category", log)
+
+    def test_f08_invalid_exact_version_rejected(self):
+        data = copy.deepcopy(CATALOG)
+        data["articles"][0]["oe_rules"][0]["version"] = "5.3.0"
+        code, log = run_validator(data)
+        self.assertNotEqual(code, 0, log)
+        self.assertIn("exact requires a six-part OE version", log)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
