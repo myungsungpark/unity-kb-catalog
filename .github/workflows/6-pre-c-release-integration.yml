@@ -54,8 +54,24 @@ jobs:
         env:
           RELEASE_ASSETS: ${{ github.workspace }}/downloaded
           TEST_PUBLIC_KEY: ${{ github.workspace }}/build/test-public.pem
+        shell: bash
         run: |
-          python3 -m unittest tests/test_release_integration.py -v
+          set -euo pipefail
+          python3 -m unittest tests/test_release_integration.py -v 2>&1 | tee release-test-results.log
+          grep -Eq "^Ran 6 tests in " release-test-results.log
+          grep -Fxq "OK" release-test-results.log
+          if grep -Eq "skipped=[1-9]|FAILED|ERROR" release-test-results.log; then
+            echo "ERROR: Release integration tests did not complete cleanly"
+            exit 1
+          fi
+          {
+            echo "### 6-Pre-C-2 GitHub Release integration"
+            echo "- Source: temporary GitHub Prerelease downloaded with gh release download"
+            echo "- Release asset byte comparison: PASS"
+            echo "- Release integration tests: 6/6 PASS, zero skipped"
+            echo "- Signing key: ephemeral CI-only RSA test key (NOT production trust)"
+            echo "- Supported platform: ubuntu-latest isolated test only"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Remove temporary release and test tag
         if: always()
         env:
