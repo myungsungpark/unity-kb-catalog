@@ -88,7 +88,7 @@
   "oe_rules": [
   {
     "type": "range",
-    "min_version": "5.1.0.0.5.394",
+    "min_version": "5.1.0.0.5.120",
     "max_version": "5.2.0.0.5.173",
     "min_inclusive": true,
     "max_inclusive": true,
