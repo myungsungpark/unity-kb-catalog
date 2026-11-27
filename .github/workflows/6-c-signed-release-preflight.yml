@@ -1,0 +1,82 @@
+name: 6-C Signed Release Preflight (NON-PRODUCTION)
+
+on:
+  push:
+    branches: [test/6-c-signed-release-preflight]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: 6-c-nonproduction-release-preflight
+  cancel-in-progress: false
+
+jobs:
+  signed-preflight:
+    name: Preview release download and signature verification - ${{ matrix.pass_id }}
+    if: github.ref == 'refs/heads/test/6-c-signed-release-preflight'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        pass_id: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-release.txt
+      - name: Validate source and generate exact prerelease assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/validate_catalog.py
+          python -m unittest discover -s tests -p 'test_validate_catalog.py' -v
+          VERSION=$(python -c 'import json;print(json.load(open("manifest.json"))["catalog_version"])')
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          python scripts/prepare_release.py --version "$VERSION" --out prepared
+          openssl genpkey -algorithm ED25519 -out "$RUNNER_TEMP/ephemeral-private.pem"
+          openssl pkey -in "$RUNNER_TEMP/ephemeral-private.pem" -pubout -out "$RUNNER_TEMP/ephemeral-public.pem"
+          python scripts/release_catalog.py --catalog prepared/unity-kb-catalog.json --output signed --key "$RUNNER_TEMP/ephemeral-private.pem" --channel preview --min-analyzer-version 1.0-RC15
+          python -m scripts.verify_published_release --assets signed --public-key "$RUNNER_TEMP/ephemeral-public.pem" --version "$VERSION" --tag "catalog-v$VERSION" --analyzer-version 1.0-RC15 --channel preview
+      - name: Publish isolated, temporary prerelease (never Stable)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="6-c-preflight-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${{ matrix.pass_id }}"
+          echo "TEST_TAG=$TAG" >> "$GITHUB_ENV"
+          gh release create "$TAG" signed/unity-kb-catalog.json signed/release-manifest.json signed/release-manifest.json.sig --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "6-C NON-PRODUCTION $TAG" --notes "Temporary prerelease, ephemeral signing key, NOT trusted by any production Analyzer" --prerelease
+          mkdir downloaded
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir downloaded
+          for n in unity-kb-catalog.json release-manifest.json release-manifest.json.sig; do cmp "signed/$n" "downloaded/$n"; done
+          python -m scripts.verify_published_release --assets downloaded --public-key "$RUNNER_TEMP/ephemeral-public.pem" --version "$VERSION" --tag "catalog-v$VERSION" --analyzer-version 1.0-RC15 --channel preview
+          echo "6-C nonproduction Release creation/download/signature verification: PASS" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove ephemeral prerelease and tag
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ -n "${TEST_TAG:-}" ]; then
+            if gh release view "$TEST_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              gh release delete "$TEST_TAG" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes
+            fi
+          fi
+          rm -f "$RUNNER_TEMP/ephemeral-private.pem" "$RUNNER_TEMP/ephemeral-public.pem"
+
+  gate:
+    name: All three 6-C prerelease checks PASS
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [signed-preflight]
+    steps:
+      - name: Require all checks
+        env:
+          RESULT: ${{ needs.signed-preflight.result }}
+        run: test "$RESULT" = success
