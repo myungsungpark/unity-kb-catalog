@@ -41,11 +41,11 @@ class TestSignedCatalog(unittest.TestCase):
         return [(self.assets / n).read_bytes() for n in ASSETS]
 
     def test_signed_release_validates(self):
-        self.assertEqual(verify_assets(*self.raws(), self.pk)["catalog_version"], "0.1.1")
+        self.assertEqual(verify_assets(*self.raws(), self.pk, analyzer_version="1.0-RC15")["catalog_version"], "0.1.1")
 
     def test_update_creates_previous_and_preserves_content(self):
         before = self.active.read_bytes()
-        backup = install_from_assets(self.active, self.assets, self.pk)
+        backup = install_from_assets(self.active, self.assets, self.pk, analyzer_version="1.0-RC15")
         self.assertEqual(backup.read_bytes(), before)
         self.assertEqual(json.loads(self.active.read_text())["catalog_version"], "0.1.1")
 
@@ -54,7 +54,7 @@ class TestSignedCatalog(unittest.TestCase):
         path = self.assets / ASSETS[0]
         path.write_bytes(path.read_bytes() + b" ")
         with self.assertRaises(ValueError):
-            install_from_assets(self.active, self.assets, self.pk)
+            install_from_assets(self.active, self.assets, self.pk, analyzer_version="1.0-RC15")
         self.assertEqual(self.active.read_bytes(), before)
 
     def test_wrong_key_rejected(self):
@@ -62,13 +62,13 @@ class TestSignedCatalog(unittest.TestCase):
             encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw)
         before = self.active.read_bytes()
         with self.assertRaises(Exception):
-            install_from_assets(self.active, self.assets, wrong)
+            install_from_assets(self.active, self.assets, wrong, analyzer_version="1.0-RC15")
         self.assertEqual(self.active.read_bytes(), before)
 
     def test_downgrade_rejected(self):
-        install_from_assets(self.active, self.assets, self.pk)
+        install_from_assets(self.active, self.assets, self.pk, analyzer_version="1.0-RC15")
         with self.assertRaisesRegex(ValueError, "downgrade"):
-            install_from_assets(self.active, self.assets, self.pk)
+            install_from_assets(self.active, self.assets, self.pk, analyzer_version="1.0-RC15")
 
     def test_release_with_enabled_incident_matching_rejected(self):
         data = json.loads(self.catalog.read_text())
@@ -83,11 +83,21 @@ class TestSignedCatalog(unittest.TestCase):
         data["channel"] = "preview"
         path.write_text(json.dumps(data))
         with self.assertRaises(Exception):
-            verify_assets(*self.raws(), self.pk)
+            verify_assets(*self.raws(), self.pk, analyzer_version="1.0-RC15")
 
     def test_channel_mismatch_rejected(self):
         with self.assertRaisesRegex(ValueError, "channel"):
-            verify_assets(*self.raws(), self.pk, channel="preview")
+            verify_assets(*self.raws(), self.pk, channel="preview", analyzer_version="1.0-RC15")
+
+    def test_analyzer_version_compatibility_rejected(self):
+        before = self.active.read_bytes()
+        with self.assertRaisesRegex(ValueError, "incompatible"):
+            install_from_assets(self.active, self.assets, self.pk, analyzer_version="1.0-RC14")
+        self.assertEqual(self.active.read_bytes(), before)
+
+    def test_missing_analyzer_version_rejected(self):
+        with self.assertRaisesRegex(ValueError, "required"):
+            verify_assets(*self.raws(), self.pk)
 
 
 if __name__ == "__main__":
