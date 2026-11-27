@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest tests.test_release_distribution tests.test_release_publisher -v 2>&1 | tee test-results.log
+          python -m unittest discover -s tests -p 'test_release_*.py' -v 2>&1 | tee test-results.log
           grep -Eq "^Ran 14 tests in " test-results.log
           grep -Fxq "OK" test-results.log
           if grep -Eq "skipped=[1-9]|FAILED|ERROR" test-results.log; then exit 1; fi
