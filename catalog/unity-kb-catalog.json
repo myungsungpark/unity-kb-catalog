@@ -109,6 +109,56 @@
     ],
     "match_status": "NOT_EVALUATED"
   }
+},
+
+{
+  "kb_id": "000191697",
+  "title": "Dell Unity: Unexpected SP reboot due to Memory Map issues",
+  "url": "https://www.dell.com/support/kbdoc/en-us/000191697/unexpected-sp-reboot-due-to-memory-map-issues-user-correctable",
+  "source": "Dell Official Support",
+  "article_type": "Solution",
+  "article_version": 6,
+  "last_modified": "2026-05-11",
+  "last_checked": "2026-11-27",
+  "verification_status": "verified",
+  "category": "SP_PANIC",
+  "affected_products": [
+    "Dell EMC Unity Family",
+    "Dell EMC Unity All Flash",
+    "Dell EMC Unity Hybrid"
+  ],
+  "affected_oe_versions": [
+    "5.0.2 or earlier"
+  ],
+  "conditions": {
+    "event_type": "STORAGE_PROCESSOR_PANIC",
+    "sp_reboot": true,
+    "mmap_limit": 65530,
+    "mmap_exhaustion_required_for_cause": true
+  },
+  "symptoms": [
+    "Unexpected single SP reboot",
+    "Unexpected dual SP reboot",
+    "SP panic",
+    "Memory Map exhaustion"
+  ],
+  "cause_summary": "Storage Processor panic when the MMAP mapping count reaches the system limit.",
+  "fixed_in_oe": "5.0.3.0.4.014",
+  "matching": {
+    "enabled": false,
+    "required": [
+      "Unity SP panic or unexpected SP reboot",
+      "Unity OE 5.0.2 or earlier"
+    ],
+    "supporting_evidence": [
+      "MMAP mapping count exhaustion",
+      "Memory Map resource limit evidence"
+    ],
+    "excluded_event_types": [
+      "HOST_KERNEL_PANIC"
+    ],
+    "match_status": "NOT_EVALUATED"
+  }
 }
   ]
 }
