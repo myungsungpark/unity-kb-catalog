@@ -55,7 +55,8 @@ jobs:
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir downloaded
           for n in unity-kb-catalog.json release-manifest.json release-manifest.json.sig; do cmp "signed/$n" "downloaded/$n"; done
           python -m scripts.verify_published_release --assets downloaded --public-key "$RUNNER_TEMP/ephemeral-public.pem" --version "$VERSION" --tag "catalog-v$VERSION" --analyzer-version 1.0-RC15 --channel preview
-          echo "6-C nonproduction Release creation/download/signature verification: PASS" >> "$GITHUB_STEP_SUMMARY"
+          echo "6-C nonproduction Release transport, signed asset byte comparison, signature verification: PASS" >> "$GITHUB_STEP_SUMMARY"
+          echo "NOTE: Temporary prerelease tag differs from the signed future stable catalog-vX.Y.Z tag; this does not certify tag-binding in real production publication." >> "$GITHUB_STEP_SUMMARY"
       - name: Remove ephemeral prerelease and tag
         if: always()
         shell: bash
