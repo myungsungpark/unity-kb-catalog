@@ -55,6 +55,60 @@
         ],
         "match_status": "NOT_EVALUATED"
       }
-    }
+    },
+    
+{
+  "kb_id": "000200921",
+  "title": "Dell Unity: SP Panic after Being Up for More than 240 Days",
+  "url": "https://www.dell.com/support/kbdoc/en-us/000200921/dell-emc-unity-in-oe-5-1-0-sp-may-panic-after-being-up-for-275-300-days",
+  "source": "Dell Official Support",
+  "article_type": "Solution",
+  "article_version": 26,
+  "last_modified": "2026-05-14",
+  "last_checked": "2026-11-27",
+  "verification_status": "verified",
+  "category": "SP_PANIC",
+  "affected_products": [
+    "Dell EMC Unity Family"
+  ],
+  "primary_affected_models": [
+    "Unity XT 480",
+    "Unity XT 680",
+    "Unity XT 880"
+  ],
+  "affected_oe_versions": [
+    "5.1.0.0.5.394 - 5.2.0.0.5.173"
+  ],
+  "conditions": {
+    "event_type": "STORAGE_PROCESSOR_PANIC",
+    "sp_uptime_days_min_exclusive": 240,
+    "typical_occurrence_days": "275-300",
+    "other_models_require_separate_review": true
+  },
+  "symptoms": [
+    "SP panic",
+    "Unexpected SP reboot",
+    "Long SP uptime"
+  ],
+  "cause_summary": "Integer overflow: a 64-bit calculation result is stored in a 32-bit variable.",
+  "fixed_in_oe": "5.3",
+  "matching": {
+    "enabled": false,
+    "required": [
+      "Unity SP panic or unexpected SP reboot",
+      "Affected model and OE conditions",
+      "SP uptime over 240 days"
+    ],
+    "supporting_evidence": [
+      "UDoctor alert referencing KB 000200921",
+      "SP uptime around 275-300 days",
+      "Relevant Unity OE version"
+    ],
+    "excluded_event_types": [
+      "HOST_KERNEL_PANIC"
+    ],
+    "match_status": "NOT_EVALUATED"
+  }
+}
   ]
 }
