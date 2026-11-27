@@ -16,7 +16,7 @@ def canonical(document):
     return (json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode("utf-8")
 
 
-def build(catalog_path, output, key_pem, channel="stable"):
+def build(catalog_path, output, key_pem, channel="stable", min_analyzer_version="1.0-RC15"):
     catalog_path = Path(catalog_path)
     output = Path(output)
     catalog_bytes = catalog_path.read_bytes()
@@ -37,6 +37,7 @@ def build(catalog_path, output, key_pem, channel="stable"):
         "catalog_version": catalog["catalog_version"],
         "schema_version": 1,
         "channel": channel,
+        "min_analyzer_version": min_analyzer_version,
         "asset": "unity-kb-catalog.json",
         "sha256": hashlib.sha256(catalog_bytes).hexdigest(),
         "size": len(catalog_bytes),
@@ -55,8 +56,9 @@ def main():
     parser.add_argument("--output", required=True)
     parser.add_argument("--key", required=True, help="PEM path, from CI secret not repository")
     parser.add_argument("--channel", choices=["stable", "preview"], default="stable")
+    parser.add_argument("--min-analyzer-version", default="1.0-RC15")
     args = parser.parse_args()
-    build(args.catalog, args.output, Path(args.key).read_bytes(), args.channel)
+    build(args.catalog, args.output, Path(args.key).read_bytes(), args.channel, args.min_analyzer_version)
     print("Signed catalog package written")
 
 
