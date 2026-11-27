@@ -43,6 +43,8 @@ def load_json(path):
 def parse_date(value):
     if not isinstance(value, str):
         return None
+    if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+        return None
     try:
         return date.fromisoformat(value)
     except ValueError:
@@ -111,7 +113,7 @@ def validate_oe_rules(article, prefix):
 
         rule_type = rule.get("type")
 
-        if rule_type not in ALLOWED_RULE_TYPES:
+        if not isinstance(rule_type, str) or rule_type not in ALLOWED_RULE_TYPES:
             errors.append(f"{label}: unsupported type {rule_type}")
             continue
 
@@ -160,6 +162,12 @@ def validate_oe_rules(article, prefix):
                     minimum <= maximum,
                     f"{label}: min_version exceeds max_version"
                 )
+                if minimum == maximum:
+                    check(
+                        rule.get("min_inclusive") is True
+                        and rule.get("max_inclusive") is True,
+                        f"{label}: empty OE range"
+                    )
 
         elif rule_type == "manual_review":
             reference = parse_version(
@@ -172,7 +180,8 @@ def validate_oe_rules(article, prefix):
             )
 
             check(
-                rule.get("reference_relation")
+                isinstance(rule.get("reference_relation"), str)
+                and rule.get("reference_relation")
                 in {"or_earlier", "or_later", "unspecified"},
                 f"{label}: invalid reference_relation"
             )
@@ -275,7 +284,8 @@ def validate_article(article, index, seen_ids):
         )
 
     check(
-        article.get("verification_status")
+        isinstance(article.get("verification_status"), str)
+        and article.get("verification_status")
         in ALLOWED_STATUSES,
         f"{prefix}: invalid verification_status"
     )
@@ -342,14 +352,22 @@ def main():
     if isinstance(manifest, dict) and isinstance(catalog, dict):
 
         check(
-            manifest.get("schema_version") == 1
+            type(manifest.get("schema_version")) is int
+            and type(catalog.get("schema_version")) is int
+            and manifest.get("schema_version") == 1
             and catalog.get("schema_version") == 1,
             "Unsupported schema version"
         )
 
         check(
-            manifest.get("catalog_version")
-            == catalog.get("catalog_version"),
+            isinstance(manifest.get("catalog_version"), str)
+            and isinstance(catalog.get("catalog_version"), str)
+            and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", manifest["catalog_version"]) is not None
+            and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", catalog["catalog_version"]) is not None,
+            "invalid catalog_version"
+        )
+        check(
+            manifest.get("catalog_version") == catalog.get("catalog_version"),
             "Catalog version mismatch"
         )
 
