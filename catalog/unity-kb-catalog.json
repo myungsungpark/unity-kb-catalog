@@ -31,7 +31,6 @@
     "verification": "requires_runtime_evidence"
      }
      ],
-     "conditions": {
       "conditions": {
         "supportassist_enabled": true,
         "event_type": "STORAGE_PROCESSOR_PANIC",
