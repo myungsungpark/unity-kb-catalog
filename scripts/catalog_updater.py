@@ -40,7 +40,7 @@ def verify_assets(catalog_bytes, manifest_bytes, signature_bytes, public_key, *,
         raise ValueError("unsupported release format")
     minimum = manifest.get("min_analyzer_version")
     def analyzer_parts(s):
-        m = re.fullmatch(r"([0-9]+)\\.([0-9]+)-RC([0-9]+)", s or "")
+        m = re.fullmatch(r"([0-9]+)\.([0-9]+)-RC([0-9]+)", s or "")
         if not m:
             raise ValueError("invalid Analyzer version")
         return tuple(map(int, m.groups()))
