@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "catalog_version": "0.1.0",
+  "catalog_status": "draft",
+  "catalog_file": "catalog/unity-kb-catalog.json",
+  "min_analyzer_version": "1.0-RC15",
+  "update_channel": "stable"
+}
