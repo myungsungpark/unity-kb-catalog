@@ -86,6 +86,17 @@
   "affected_oe_versions": [
     "5.1.0.0.5.394 - 5.2.0.0.5.173"
   ],
+  "oe_rules": [
+  {
+    "type": "range",
+    "min_version": "5.1.0.0.5.394",
+    "max_version": "5.2.0.0.5.173",
+    "min_inclusive": true,
+    "max_inclusive": true,
+    "verification": "requires_runtime_evidence",
+    "applicability": "primary_reported_range"
+  }
+  ],
   "conditions": {
     "event_type": "STORAGE_PROCESSOR_PANIC",
     "sp_uptime_days_min_exclusive": 240,
@@ -136,6 +147,16 @@
   ],
   "affected_oe_versions": [
     "5.0.2 or earlier"
+  ],
+  "oe_rules": [
+  {
+    "type": "manual_review",
+    "reference_version": "5.0.2",
+    "reference_relation": "or_earlier",
+    "applicability": "particularly_affected",
+    "verification": "requires_runtime_evidence",
+    "reason": "The Dell article does not define a strict upper version boundary for all affected systems."
+  }
   ],
   "conditions": {
     "event_type": "STORAGE_PROCESSOR_PANIC",
