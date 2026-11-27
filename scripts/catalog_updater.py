@@ -30,7 +30,7 @@ def load_public_key(raw):
 
 
 def verify_assets(catalog_bytes, manifest_bytes, signature_bytes, public_key, *,
-                  installed_version=None, channel="stable", allow_rollback=False):
+                  installed_version=None, analyzer_version=None, channel="stable", allow_rollback=False):
     if len(catalog_bytes) > 16 * 1024 * 1024 or len(manifest_bytes) > 64 * 1024:
         raise ValueError("oversized release asset")
     load_public_key(public_key).verify(signature_bytes, manifest_bytes)
@@ -38,6 +38,17 @@ def verify_assets(catalog_bytes, manifest_bytes, signature_bytes, public_key, *,
     catalog = json.loads(catalog_bytes)
     if manifest.get("format_version") != 1 or manifest.get("schema_version") != 1:
         raise ValueError("unsupported release format")
+    minimum = manifest.get("min_analyzer_version")
+    def analyzer_parts(s):
+        m = re.fullmatch(r"([0-9]+)\\.([0-9]+)-RC([0-9]+)", s or "")
+        if not m:
+            raise ValueError("invalid Analyzer version")
+        return tuple(map(int, m.groups()))
+    if not isinstance(minimum, str):
+        raise ValueError("missing minimum Analyzer version")
+    analyzer_parts(minimum)
+    if analyzer_version is not None and analyzer_parts(analyzer_version) < analyzer_parts(minimum):
+        raise ValueError("Analyzer version incompatible")
     if manifest.get("channel") != channel or manifest.get("asset") != ASSETS[0]:
         raise ValueError("release channel or asset mismatch")
     if manifest.get("sha256") != hashlib.sha256(catalog_bytes).hexdigest():
@@ -62,7 +73,7 @@ def verify_assets(catalog_bytes, manifest_bytes, signature_bytes, public_key, *,
 
 
 def install_from_assets(active_path, asset_dir, public_key, *, channel="stable",
-                        allow_rollback=False):
+                        allow_rollback=False, analyzer_version=None):
     """Atomic replacement on same filesystem; retain last-known-good backup.
 
     Caller must serialize updater access, close Analyzer file handles, and
@@ -74,7 +85,8 @@ def install_from_assets(active_path, asset_dir, public_key, *, channel="stable",
     old_bytes = active.read_bytes() if active.exists() else None
     old_version = json.loads(old_bytes)["catalog_version"] if old_bytes else None
     verify_assets(*raw, public_key, installed_version=old_version,
-                  channel=channel, allow_rollback=allow_rollback)
+                  channel=channel, allow_rollback=allow_rollback,
+                  analyzer_version=analyzer_version)
     active.parent.mkdir(parents=True, exist_ok=True)
     backup = active.with_name(active.name + ".previous")
     tmp_path = None
