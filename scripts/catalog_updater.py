@@ -151,8 +151,6 @@ def download_release_assets(repo, tag, destination):
         raise ValueError("missing signed release assets")
     dest = Path(destination)
     dest.mkdir(parents=True, exist_ok=True)
-    if tag != "catalog-v" + str(json.loads(get(found["release-manifest.json"]["browser_download_url"], 65536)).get("catalog_version")):
-        raise ValueError("requested tag differs from catalog version")
     for name in ASSETS:
         uri = found[name]["browser_download_url"]
         if not uri.startswith("https://github.com/" + repo + "/releases/download/" + tag + "/"):
