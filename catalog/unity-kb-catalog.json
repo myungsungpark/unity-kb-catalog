@@ -1,3 +1,4 @@
+
 {
   "schema_version": 1,
   "catalog_version": "0.1.0",
@@ -5,5 +6,55 @@
   "vendor": "Dell",
   "product_family": "Unity",
   "description": "Official Dell KB references for Unity Storage Analyzer",
-  "articles": []
+  "articles": [
+    {
+      "kb_id": "000216765",
+      "title": "Dell Unity: Array on 5.3.0 with SupportAssist experience Storage Processor panic",
+      "url": "https://www.dell.com/support/kbdoc/en-us/000216765/dell-unity-arrays-running-5-3-0-code-may-experience-storage-processor-sp-panics-after-2-months-uptime-user-correctable",
+      "source": "Dell Official Support",
+      "article_type": "Solution",
+      "article_version": 14,
+      "last_modified": "2026-05-18",
+      "last_checked": "2026-11-27",
+      "verification_status": "verified",
+      "category": "SP_PANIC",
+      "affected_products": [
+        "Dell EMC Unity"
+      ],
+      "affected_oe_versions": [
+        "5.3.0.0.5.120"
+      ],
+      "conditions": {
+        "supportassist_enabled": true,
+        "event_type": "STORAGE_PROCESSOR_PANIC",
+        "scg_two_gateways_months_approx": 2,
+        "scg_single_or_direct_months_approx": 4
+      },
+      "symptoms": [
+        "SP panic",
+        "Unexpected SP reboot",
+        "No Resources",
+        "Zombie curl processes"
+      ],
+      "cause_summary": "SupportAssist resource leak caused by zombie curl processes.",
+      "fixed_in_oe": "5.3.1.0.5.008",
+      "matching": {
+        "enabled": false,
+        "required": [
+          "Unity SP panic or unexpected SP reboot",
+          "Unity OE 5.3.0.0.5.120",
+          "SupportAssist enabled"
+        ],
+        "supporting_evidence": [
+          "No Resources",
+          "Zombie curl processes",
+          "Relevant SP uptime"
+        ],
+        "excluded_event_types": [
+          "HOST_KERNEL_PANIC"
+        ],
+        "match_status": "NOT_EVALUATED"
+      }
+    }
+  ]
 }
