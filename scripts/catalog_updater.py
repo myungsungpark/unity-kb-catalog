@@ -47,7 +47,9 @@ def verify_assets(catalog_bytes, manifest_bytes, signature_bytes, public_key, *,
     if not isinstance(minimum, str):
         raise ValueError("missing minimum Analyzer version")
     analyzer_parts(minimum)
-    if analyzer_version is not None and analyzer_parts(analyzer_version) < analyzer_parts(minimum):
+    if analyzer_version is None:
+        raise ValueError("Analyzer version required")
+    if analyzer_parts(analyzer_version) < analyzer_parts(minimum):
         raise ValueError("Analyzer version incompatible")
     if manifest.get("channel") != channel or manifest.get("asset") != ASSETS[0]:
         raise ValueError("release channel or asset mismatch")
