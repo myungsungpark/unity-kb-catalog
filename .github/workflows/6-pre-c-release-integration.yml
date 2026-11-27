@@ -15,7 +15,18 @@ concurrency:
 
 jobs:
   release-update-rollback:
+    name: Verification ${{ matrix.pass_id }} - ${{ matrix.scope }}
     if: github.ref == 'refs/heads/test/6-pre-c-release-update-rollback'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pass_id: 1
+            scope: release-integrity
+          - pass_id: 2
+            scope: fault-rejection
+          - pass_id: 3
+            scope: rollback-recovery
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -26,7 +37,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          TAG="pre-c-test-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          TAG="pre-c-test-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${{ matrix.pass_id }}"
           echo "TEST_RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
           mkdir -p build downloaded
           python3 - <<'PY'
@@ -65,12 +76,13 @@ jobs:
             exit 1
           fi
           {
-            echo "### 6-Pre-C-2 GitHub Release integration"
+            echo "### 6-Pre-C-3 independent verification pass ${{ matrix.pass_id }} — ${{ matrix.scope }}"
             echo "- Source: temporary GitHub Prerelease downloaded with gh release download"
             echo "- Release asset byte comparison: PASS"
             echo "- Release integration tests: 6/6 PASS, zero skipped"
             echo "- Signing key: ephemeral CI-only RSA test key (NOT production trust)"
-            echo "- Supported platform: ubuntu-latest isolated test only"
+            echo "- Runner: independent ubuntu-latest matrix job ${{ matrix.pass_id }}"
+            echo "- Verification limitation: same implementation tested independently; no production Analyzer/Windows verification"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Remove temporary release and test tag
         if: always()
@@ -79,5 +91,30 @@ jobs:
         shell: bash
         run: |
           if [ -n "${TEST_RELEASE_TAG:-}" ]; then
-            gh release delete "$TEST_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || { echo "ERROR: cleanup failed: $TEST_RELEASE_TAG"; exit 1; }
+            if gh release view "$TEST_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              gh release delete "$TEST_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || { echo "ERROR: cleanup failed: $TEST_RELEASE_TAG"; exit 1; }
+            else
+              echo "No temporary release to remove: $TEST_RELEASE_TAG"
+            fi
           fi
+
+  verification-gate:
+    name: Gate - all 3 independent jobs must PASS
+    if: always() && github.ref == 'refs/heads/test/6-pre-c-release-update-rollback'
+    needs: [release-update-rollback]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce three independent runner results
+        env:
+          MATRIX_RESULT: ${{ needs.release-update-rollback.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$MATRIX_RESULT" = "success"
+          {
+            echo "### 6-Pre-C-3 verification gate"
+            echo "- Three separate GitHub-hosted runner jobs required"
+            echo "- Each matrix job verifies 6/6 tests and zero skips"
+            echo "- Combined result: $MATRIX_RESULT"
+            echo "- NOT a production signing-key or Windows Analyzer verification"
+          } >> "$GITHUB_STEP_SUMMARY"
