@@ -1,0 +1,66 @@
+name: 6-Pre-C Temporary GitHub Release Update Rollback
+
+on:
+  push:
+    branches:
+      - test/6-pre-c-release-update-rollback
+    paths:
+      - "tests/test_release_integration.py"
+      - ".github/workflows/6-pre-c-release-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pre-c-release-test
+  cancel-in-progress: false
+
+jobs:
+  release-update-rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create isolated prerelease and download actual release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="pre-c-test-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "TEST_RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
+          mkdir -p build downloaded
+          python3 - <<'PY'
+          import copy, hashlib, json
+          from pathlib import Path
+          data = json.loads(Path("catalog/unity-kb-catalog.json").read_text())
+          data["catalog_version"] = "0.1.1"
+          Path("build/unity-kb-catalog.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
+          payload = Path("build/unity-kb-catalog.json").read_bytes()
+          metadata = {"catalog_version":"0.1.1", "sha256": hashlib.sha256(payload).hexdigest()}
+          Path("build/release-manifest.json").write_text(json.dumps(metadata), encoding="utf-8")
+          PY
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out build/test-private.pem 2>/dev/null
+          openssl pkey -in build/test-private.pem -pubout -out build/test-public.pem
+          openssl dgst -sha256 -sign build/test-private.pem -out build/unity-kb-catalog.json.sig build/unity-kb-catalog.json
+          gh release create "$TAG" build/unity-kb-catalog.json build/release-manifest.json build/unity-kb-catalog.json.sig --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "6-Pre-C isolated CI test $TAG" --notes "Temporary integration-test release; not production; ephemeral signing key." --prerelease
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir downloaded
+          cmp build/unity-kb-catalog.json downloaded/unity-kb-catalog.json
+          cmp build/release-manifest.json downloaded/release-manifest.json
+          cmp build/unity-kb-catalog.json.sig downloaded/unity-kb-catalog.json.sig
+      - name: Verify actual downloaded Release and exercise rollback
+        env:
+          RELEASE_ASSETS: ${{ github.workspace }}/downloaded
+          TEST_PUBLIC_KEY: ${{ github.workspace }}/build/test-public.pem
+        run: |
+          python3 -m unittest tests/test_release_integration.py -v
+      - name: Remove temporary release and test tag
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if [ -n "${TEST_RELEASE_TAG:-}" ]; then
+            gh release delete "$TEST_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || echo "WARNING: cleanup failed, manual review required: $TEST_RELEASE_TAG"
+          fi
