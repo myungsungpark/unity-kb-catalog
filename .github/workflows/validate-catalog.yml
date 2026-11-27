@@ -17,6 +17,7 @@ on:
       - "catalog/**"
       - "manifest.json"
       - "scripts/validate_catalog.py"
+      - "tests/**"
       - ".github/workflows/validate-catalog.yml"
 
   workflow_dispatch:
