@@ -82,8 +82,9 @@ def validate_candidate(catalog_bytes, metadata):
 
 def envelope(catalog_bytes, metadata):
     candidate = validate_candidate(catalog_bytes, metadata)
+    canonical = json.dumps(candidate, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return {"version": metadata["catalog_version"],
-            "sha256": metadata["sha256"],
+            "sha256": hashlib.sha256(canonical).hexdigest(),
             "catalog": candidate}
 
 
@@ -93,8 +94,10 @@ def read_envelope(path):
         raise UpdateRejected("invalid cached envelope")
     raw = json.dumps(obj["catalog"], sort_keys=True, separators=(",", ":")).encode("utf-8")
     # Cache hash is for local corruption detection; metadata authenticity is unverified.
-    if not isinstance(obj.get("sha256"), str) or len(obj["sha256"]) != 64:
+    if not isinstance(obj.get("sha256"), str) or not re.fullmatch(r"[a-f0-9]{64}", obj["sha256"]):
         raise UpdateRejected("invalid cache digest")
+    if hashlib.sha256(raw).hexdigest() != obj["sha256"]:
+        raise UpdateRejected("corrupted cache digest")
     if obj.get("version") != obj["catalog"].get("catalog_version"):
         raise UpdateRejected("cached version mismatch")
     return obj
