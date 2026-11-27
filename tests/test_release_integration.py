@@ -11,8 +11,8 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-ASSETS = Path(os.environ["RELEASE_ASSETS"])
-PUBKEY = Path(os.environ["TEST_PUBLIC_KEY"])
+ASSETS = Path(os.environ.get("RELEASE_ASSETS", "/nonexistent/release-assets"))
+PUBKEY = Path(os.environ.get("TEST_PUBLIC_KEY", "/nonexistent/test-public-key"))
 
 
 def signature_ok(payload, signature):
@@ -67,6 +67,8 @@ def apply_update(current, candidate, manifest, signature, fail_after_activation=
 
 class ReleaseIntegrationTests(unittest.TestCase):
     def setUp(self):
+        if "RELEASE_ASSETS" not in os.environ or "TEST_PUBLIC_KEY" not in os.environ:
+            self.skipTest("Release integration tests require downloaded GitHub Release assets")
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.work = Path(self.tmp.name)
