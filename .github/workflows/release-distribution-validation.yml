@@ -35,12 +35,12 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_release_distribution.py' -v 2>&1 | tee test-results.log
-          grep -Eq "^Ran 8 tests in " test-results.log
+          grep -Eq "^Ran 10 tests in " test-results.log
           grep -Fxq "OK" test-results.log
           if grep -Eq "skipped=[1-9]|FAILED|ERROR" test-results.log; then exit 1; fi
       - name: Record scope
         run: |
-          echo "Pass ${{ matrix.pass }}: 8/8 signed packaging and local updater tests" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pass ${{ matrix.pass }}: 10/10 signed packaging and local updater tests" >> "$GITHUB_STEP_SUMMARY"
           echo "Does not sign, publish or install a production release." >> "$GITHUB_STEP_SUMMARY"
 
   all-pass:
