@@ -1,0 +1,39 @@
+
+name: Validate Dell KB Catalog
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "catalog/**"
+      - "manifest.json"
+      - "scripts/validate_catalog.py"
+      - ".github/workflows/validate-catalog.yml"
+
+  pull_request:
+    paths:
+      - "catalog/**"
+      - "manifest.json"
+      - "scripts/validate_catalog.py"
+      - ".github/workflows/validate-catalog.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Catalog JSON
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Python
+        run: python3 --version
+
+      - name: Validate Dell KB Catalog
+        run: python3 scripts/validate_catalog.py
